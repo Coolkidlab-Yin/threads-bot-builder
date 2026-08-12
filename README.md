@@ -3,12 +3,20 @@
 > Build a Threads posting bot from any content source — news, your own drafts, long-form repurposing, curation, product updates, replies. Human-in-the-loop by default: you pick the direction in 5 seconds, the AI does the other 20 minutes.
 
 這是一個 Claude Code 教學型 skill:裝了之後直接跟 Claude 說你想做什麼樣的
-Threads bot,它會照 SOP 一步步帶你建起來 —— **包含開瀏覽器陪你把 Meta 的
+Threads bot,它會照 SOP 一步步帶你建起來 —— **包含接上瀏覽器陪你把 Meta 的
 API 憑證申請下來**,那是多數人卡住的地方。
+
+開場長這樣,不會先丟一堆架構圖給你:
+
+> 你好,我是 coolkid,接下來我會一步一步帶你做出你的第一個 Threads 機器人。
+> ……我們先從最有用的一題開始:你希望這個 bot 幫哪個帳號,省下哪一段重複工作?
+
+之後每一輪只推進**一個概念、一個檢查、一個動作**,不會一次把 token、排程、
+去重、部署全倒給你。
 
 ## 內容從哪來,你自己決定
 
-這份骨架不預設你要發什麼。skill 的第一步就是問你要做哪一種:
+這份骨架不預設你要發什麼。你講得出用途就直接往下走,講不出來時它會給例子:
 
 | 型態 | 內容從哪來 |
 |---|---|
@@ -48,9 +56,25 @@ API 憑證申請下來**,那是多數人卡住的地方。
 
 ## 開工前你要先有的東西
 
-**Threads API 憑證不用自己研究怎麼申請。** skill 的第 0.5 步會讓 AI 開
-瀏覽器,一頁一頁陪你走到拿到為止 —— 你只負責打帳密、按送出這些該由你
-做的動作。(AI 沒有瀏覽器能力的話會改用一次一步的口述模式,一樣做得完。)
+**Threads API 憑證不用自己研究怎麼申請。** 進 Meta 後台之前,skill 會先
+確認 AI 有沒有瀏覽器能力,有的話一頁一頁陪你走到拿到為止 —— 你只負責打
+帳密、按送出這些該由你做的動作。
+
+AI 沒有瀏覽器能力時**不會叫你自己想辦法**,它會依自己是哪個工具給你安裝方式:
+
+| 你在用 | 怎麼接 |
+|---|---|
+| Claude Code(想沿用你已登入的 Chrome) | 裝 [Claude 瀏覽器擴充](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn),步驟見 [官方說明](https://support.claude.com/en/articles/12012173-getting-started-with-claude-for-chrome) |
+| Claude Code(想另開乾淨瀏覽器) | `claude mcp add playwright npx @playwright/mcp@latest` |
+| Codex CLI | `codex mcp add playwright -- npx @playwright/mcp@latest` |
+| 其他支援 MCP 的工具 | 依它的設定檔加入 [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
+
+兩條路都是透過 MCP 到 AI 手上,差別在**接哪個瀏覽器**:擴充接管你現在
+已登入的 Chrome(免重登,但同一個 Chrome 的其他分頁也在它視野內);
+Playwright MCP 另開一個乾淨的(要重登一次,但看不到你其他東西)。
+
+都不想裝也行,會改用一次一步的口述模式,一樣做得完,只是慢一些 ——
+而且不會每個畫面再問你一次要不要裝。
 
 | 要準備的 | 大約時間 | 要錢嗎 |
 |---|---|---|
@@ -61,15 +85,22 @@ API 憑證申請下來**,那是多數人卡住的地方。
 ## 已含的實戰坑(原作者實測)
 
 - Windows CP950 編碼:中文塞進 curl 命令列會變亂碼,要改走 UTF-8 檔
-- 兩段式發文的時序:create container 後直接 publish 會失敗,中間要 sleep
-- token 60 天靜默失效:API 有回錯,但你沒記 log 就不會知道
+- **兩段式發文:create 成功不等於 publish 成功**,兩者的 id 與錯誤要分開記。
+  而且 skill 明文禁止「固定 sleep 幾秒就當作容器好了」—— 要照平台可觀察的
+  狀態判斷,固定等待不是成功證據
+- 長期 token 靜默失效:API 有回錯,但你沒記 log 就不會知道
 - 「沒報錯但也沒發」:這類 bot 最難抓的故障型態,log 不是選配
 
-## 紅線(skill 內建,每篇都守)
+## 硬性 gate(skill 內建,語氣再親切也不會放水)
 
-1. 結尾不加「追蹤我」這類 CTA 或 slogan
-2. 文中不放聯盟連結或 UTM
-3. 整篇不超過 500 字(寫文控在 480 內留 buffer)
+1. **沒有你的批准,不會真的發文**。dry-run 跑完只能說「完成至 dry-run」,
+   不能講成做完了
+2. 批准**只算那一篇**,不會延伸到後面的貼文
+3. 同一素材連跑兩次,發布前一定被去重擋下
+4. 不從記憶編造平台 UI、API 版本、參數、權限或配額 —— 不確定就當場查官方文件
+
+> 內容面的紅線(語氣、字數、要不要放連結、哪些主題不碰)**是你自己定的**,
+> skill 會在開工前帶你講清楚並寫進設定,而不是塞一套預設值給你。
 
 ## 原作者實跑過的版本
 
